@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Casio 550 Style Scientific Calculator</title>
+  <meta name="description" content="친구들과 함께 쓰는 Casio fx-550 스타일 공학용 계산기">
+  <meta name="theme-color" content="#20242a">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="공학용 계산기">
+  <meta property="og:description" content="카카오톡에서 눌러 바로 쓰는 Casio fx-550 스타일 계산기">
+  <meta property="og:site_name" content="Scientific Calculator">
+  <style>
+    :root {
+      color-scheme: dark;
+      --body: #20242a;
+      --body-edge: #0d1117;
+      --panel: #2d333d;
+      --screen: #b8c6ad;
+      --screen-ink: #1f2a21;
+      --key: #343a44;
+      --key-top: #4b5360;
+      --key-text: #f3f6f9;
+      --fn: #252b34;
+      --fn-top: #3f4854;
+      --shift: #d4a028;
+      --alpha: #c14e5b;
+      --op: #5c6470;
+      --accent: #66a2ff;
+      --equals: #2f6fb7;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(102, 162, 255, 0.2), transparent 26rem),
+        linear-gradient(135deg, #e7ecef 0%, #aab4bf 42%, #697583 100%);
+      padding: 18px;
+    }
+
+    .calculator {
+      width: min(430px, 100%);
+      border-radius: 22px 22px 34px 34px;
+      background: linear-gradient(145deg, #38404b, var(--body) 55%, #141920);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        inset 0 -16px 28px rgba(0, 0, 0, 0.35),
+        0 28px 65px rgba(11, 16, 23, 0.45);
+      padding: 18px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      margin: 0 4px 12px;
+      letter-spacing: 0;
+    }
+
+    .brand-actions {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+    }
+
+    .brand {
+      color: #f5f7fa;
+      font-size: 1.35rem;
+      font-weight: 800;
+    }
+
+    .model {
+      color: #dce5ee;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .solar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      width: 104px;
+      height: 24px;
+      padding: 3px;
+      border-radius: 4px;
+      background: #11151b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .solar span {
+      background: linear-gradient(180deg, #49351f, #251a12);
+      border-radius: 2px;
+    }
+
+    .share-btn {
+      width: 46px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #fee95a, #f5cf22);
+      color: #2b2410;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        inset 0 -3px 0 rgba(102, 82, 0, 0.22),
+        0 3px 0 var(--body-edge);
+      font-size: 0.72rem;
+    }
+
+    .share-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      z-index: 10;
+      width: min(330px, calc(100% - 32px));
+      transform: translate(-50%, 18px);
+      border-radius: 8px;
+      background: rgba(17, 22, 29, 0.94);
+      color: #f7fafc;
+      padding: 12px 14px;
+      text-align: center;
+      font-size: 0.88rem;
+      line-height: 1.35;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, 0.32);
+    }
+
+    .share-toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .screen-wrap {
+      padding: 10px;
+      border-radius: 9px;
+      background: #171c22;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      box-shadow: inset 0 5px 12px rgba(0, 0, 0, 0.6);
+      margin-bottom: 14px;
+    }
+
+    .screen {
+      min-height: 118px;
+      border-radius: 5px;
+      background: linear-gradient(155deg, #d7e0cf, var(--screen));
+      color: var(--screen-ink);
+      border: 2px solid #7f8b78;
+      padding: 12px;
+      font-family: Consolas, "Courier New", monospace;
+      box-shadow: inset 0 2px 8px rgba(29, 44, 31, 0.4);
+      overflow: hidden;
+    }
+
+    .status {
+      display: flex;
+      justify-content: space-between;
+      height: 18px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      opacity: 0.84;
+    }
+
+    .expression {
+      height: 35px;
+      margin-top: 5px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: clamp(0.84rem, 3vw, 1rem);
+    }
+
+    .result {
+      min-height: 38px;
+      display: flex;
+      align-items: end;
+      justify-content: end;
+      font-size: clamp(1.55rem, 8vw, 2.35rem);
+      font-weight: 800;
+      line-height: 1;
+      word-break: break-all;
+      text-align: right;
+    }
+
+    .mode-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    button {
+      position: relative;
+      min-width: 0;
+      height: 44px;
+      border: 0;
+      border-radius: 7px 7px 12px 12px;
+      background: linear-gradient(180deg, var(--key-top), var(--key));
+      color: var(--key-text);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -4px 0 rgba(0, 0, 0, 0.24),
+        0 3px 0 var(--body-edge);
+      font: 800 0.92rem/1 "Segoe UI", system-ui, sans-serif;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.13),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.24),
+        0 1px 0 var(--body-edge);
+    }
+
+    .fn {
+      background: linear-gradient(180deg, var(--fn-top), var(--fn));
+      font-size: 0.78rem;
+    }
+
+    .op {
+      background: linear-gradient(180deg, #75808d, var(--op));
+    }
+
+    .danger {
+      background: linear-gradient(180deg, #e86b5e, #a8322f);
+    }
+
+    .equals {
+      background: linear-gradient(180deg, #75a9e9, var(--equals));
+    }
+
+    .mode {
+      height: 34px;
+      border-radius: 16px;
+      font-size: 0.78rem;
+      color: #1d232b;
+      background: linear-gradient(180deg, #e5edf5, #aeb8c3);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -3px 0 rgba(0, 0, 0, 0.18),
+        0 3px 0 var(--body-edge);
+    }
+
+    .mode.active {
+      color: #0e1b2a;
+      background: linear-gradient(180deg, #8fc0ff, var(--accent));
+    }
+
+    .fn.active {
+      outline: 2px solid var(--shift);
+      outline-offset: 1px;
+    }
+
+    .shift::before,
+    .alpha::before {
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      font-size: 0.52rem;
+      line-height: 1;
+    }
+
+    .shift::before {
+      content: attr(data-shift);
+      color: var(--shift);
+    }
+
+    .alpha::before {
+      content: attr(data-alpha);
+      color: var(--alpha);
+    }
+
+    .wide {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 390px) {
+      .calculator {
+        padding: 14px;
+      }
+
+      .keypad {
+        gap: 6px;
+      }
+
+      button {
+        height: 40px;
+        font-size: 0.8rem;
+      }
+
+      .fn {
+        font-size: 0.68rem;
+      }
+
+      .solar {
+        width: 86px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="calculator" aria-label="Casio 550 style scientific calculator">
+    <div class="brand-row">
+      <div>
+        <div class="brand">CASIO</div>
+        <div class="model">fx-550 style SCIENTIFIC</div>
+      </div>
+      <div class="brand-actions">
+        <button class="share-btn" id="shareKakao" type="button" title="카카오톡으로 공유">공유</button>
+        <div class="solar" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <section class="screen-wrap" aria-live="polite">
+      <div class="screen">
+        <div class="status">
+          <span id="angleStatus">DEG</span>
+          <span id="memoryStatus"></span>
+          <span>COMP</span>
+        </div>
+        <div id="expression" class="expression"></div>
+        <div id="result" class="result">0</div>
+      </div>
+    </section>
+
+    <div class="mode-row" role="group" aria-label="angle mode">
+      <button class="mode active" data-angle="DEG">DEG</button>
+      <button class="mode" data-angle="RAD">RAD</button>
+      <button class="mode" data-angle="GRA">GRA</button>
+    </div>
+
+    <section class="keypad" aria-label="calculator keys">
+      <button class="fn shift" data-action="second" data-shift="2nd">SHIFT</button>
+      <button class="fn alpha" data-action="memory-plus" data-alpha="M+">M+</button>
+      <button class="fn alpha" data-action="memory-recall" data-alpha="MR">MR</button>
+      <button class="fn alpha" data-action="memory-clear" data-alpha="MC">MC</button>
+      <button class="danger" data-action="clear-all">AC</button>
+
+      <button class="fn shift" data-value="sin(" data-shift="asin">sin</button>
+      <button class="fn shift" data-value="cos(" data-shift="acos">cos</button>
+      <button class="fn shift" data-value="tan(" data-shift="atan">tan</button>
+      <button class="fn shift" data-value="log(" data-shift="10^x">log</button>
+      <button class="fn shift" data-value="ln(" data-shift="e^x">ln</button>
+
+      <button class="fn" data-value="sqrt(">√</button>
+      <button class="fn" data-action="square">x²</button>
+      <button class="fn" data-action="power">xʸ</button>
+      <button class="fn" data-action="factorial">x!</button>
+      <button class="fn" data-value="pi">π</button>
+
+      <button class="fn" data-value="(">(</button>
+      <button class="fn" data-value=")">)</button>
+      <button class="fn" data-value="EXP">EXP</button>
+      <button class="fn" data-action="percent">%</button>
+      <button class="op" data-action="backspace">DEL</button>
+
+      <button data-value="7">7</button>
+      <button data-value="8">8</button>
+      <button data-value="9">9</button>
+      <button class="op" data-value="/">÷</button>
+      <button class="op" data-action="reciprocal">1/x</button>
+
+      <button data-value="4">4</button>
+      <button data-value="5">5</button>
+      <button data-value="6">6</button>
+      <button class="op" data-value="*">×</button>
+      <button class="op" data-action="toggle-sign">±</button>
+
+      <button data-value="1">1</button>
+      <button data-value="2">2</button>
+      <button data-value="3">3</button>
+      <button class="op" data-value="-">−</button>
+      <button class="equals" data-action="equals">=</button>
+
+      <button class="wide" data-value="0">0</button>
+      <button data-value=".">.</button>
+      <button class="op" data-value="+">+</button>
+      <button class="op" data-action="ans">Ans</button>
+    </section>
+  </main>
+
+  <div class="share-toast" id="shareToast" role="status" aria-live="polite"></div>
+
+  <script>
+    const expressionEl = document.querySelector("#expression");
+    const resultEl = document.querySelector("#result");
+    const angleStatusEl = document.querySelector("#angleStatus");
+    const memoryStatusEl = document.querySelector("#memoryStatus");
+    const shareButton = document.querySelector("#shareKakao");
+    const shareToast = document.querySelector("#shareToast");
+    const keys = document.querySelector(".keypad");
+    const modeButtons = document.querySelectorAll(".mode");
+
+    let expression = "";
+    let answer = 0;
+    let memory = 0;
+    let angleMode = "DEG";
+    let secondMode = false;
+    let toastTimer = 0;
+
+    const formatNumber = (value) => {
+      if (!Number.isFinite(value)) return "Math ERROR";
+      if (Object.is(value, -0)) return "0";
+      const abs = Math.abs(value);
+      if ((abs >= 1e12 || (abs > 0 && abs < 1e-9))) {
+        return value.toExponential(8).replace(/\.?0+e/, "e");
+      }
+      return Number(value.toPrecision(12)).toString();
+    };
+
+    const toRadians = (value) => {
+      if (angleMode === "RAD") return value;
+      if (angleMode === "GRA") return value * Math.PI / 200;
+      return value * Math.PI / 180;
+    };
+
+    const fromRadians = (value) => {
+      if (angleMode === "RAD") return value;
+      if (angleMode === "GRA") return value * 200 / Math.PI;
+      return value * 180 / Math.PI;
+    };
+
+    const factorial = (value) => {
+      if (value < 0 || !Number.isInteger(value) || value > 170) return NaN;
+      let total = 1;
+      for (let i = 2; i <= value; i += 1) total *= i;
+      return total;
+    };
+
+    const sanitize = (text) => text
+      .replaceAll("π", "pi")
+      .replaceAll("÷", "/")
+      .replaceAll("×", "*")
+      .replaceAll("−", "-");
+
+    const evaluate = (text) => {
+      if (!text.trim()) return 0;
+      let source = sanitize(text)
+        .replaceAll("EXP", "e")
+        .replaceAll("^", "**")
+        .replace(/\bAns\b/g, "ans")
+        .replace(/\bpi\b/g, "PI")
+        .replace(/\be\b/g, "E");
+
+      source = source
+        .replace(/\bsin\(/g, "sin(")
+        .replace(/\bcos\(/g, "cos(")
+        .replace(/\btan\(/g, "tan(")
+        .replace(/\basin\(/g, "asin(")
+        .replace(/\bacos\(/g, "acos(")
+        .replace(/\batan\(/g, "atan(")
+        .replace(/\blog\(/g, "log10(")
+        .replace(/\bln\(/g, "log(")
+        .replace(/\bsqrt\(/g, "sqrt(");
+
+      if (!/^[0-9+\-*/().,\sA-Z_a-z*!^]+$/.test(source)) {
+        throw new Error("Invalid input");
+      }
+
+      const scope = {
+        PI: Math.PI,
+        E: Math.E,
+        ans: answer,
+        sin: (x) => Math.sin(toRadians(x)),
+        cos: (x) => Math.cos(toRadians(x)),
+        tan: (x) => Math.tan(toRadians(x)),
+        asin: (x) => fromRadians(Math.asin(x)),
+        acos: (x) => fromRadians(Math.acos(x)),
+        atan: (x) => fromRadians(Math.atan(x)),
+        log10: Math.log10,
+        log: Math.log,
+        sqrt: Math.sqrt,
+        fact: factorial,
+      };
+
+      source = source.replace(/(\d+|\([^()]+\)|ans|PI|E)!/g, "fact($1)");
+      const names = Object.keys(scope);
+      const values = Object.values(scope);
+      return Function(...names, `"use strict"; return (${source});`)(...values);
+    };
+
+    const updateScreen = (temporaryResult = null) => {
+      expressionEl.textContent = expression;
+      resultEl.textContent = temporaryResult ?? (expression ? "" : formatNumber(answer));
+      angleStatusEl.textContent = angleMode + (secondMode ? "  S" : "");
+      memoryStatusEl.textContent = memory ? "M" : "";
+      document.querySelector("[data-action='second']").classList.toggle("active", secondMode);
+    };
+
+    const showToast = (message) => {
+      window.clearTimeout(toastTimer);
+      shareToast.textContent = message;
+      shareToast.classList.add("show");
+      toastTimer = window.setTimeout(() => {
+        shareToast.classList.remove("show");
+      }, 2600);
+    };
+
+    const shareCalculator = async () => {
+      const pageUrl = location.protocol === "file:" ? "" : location.href;
+      const resultText = expression
+        ? `현재 입력식: ${expression}`
+        : `최근 계산값: ${formatNumber(answer)}`;
+      const text = `Casio 550 스타일 공학용 계산기\n${resultText}`;
+      const shareData = {
+        title: "공학용 계산기",
+        text,
+        url: pageUrl || undefined,
+      };
+
+      try {
+        if (navigator.share && navigator.canShare?.(shareData) !== false) {
+          await navigator.share(shareData);
+          showToast("공유 창에서 카카오톡을 선택하면 됩니다.");
+          return;
+        }
+      } catch (error) {
+        if (error.name === "AbortError") return;
+      }
+
+      const copyText = pageUrl ? `${text}\n${pageUrl}` : text;
+      try {
+        await navigator.clipboard.writeText(copyText);
+        showToast("공유 문구를 복사했습니다. 카카오톡 채팅방에 붙여넣으세요.");
+      } catch {
+        showToast("이 브라우저는 자동 공유를 지원하지 않습니다. 주소창 링크를 복사해 주세요.");
+      }
+    };
+
+    const append = (value) => {
+      if (!expression && /^[+\-*/^]$/.test(value)) {
+        expression = "Ans";
+      }
+      expression += value;
+      updateScreen();
+    };
+
+    const appendFunction = (value) => {
+      const secondMap = {
+        "sin(": "asin(",
+        "cos(": "acos(",
+        "tan(": "atan(",
+        "log(": "10^(",
+        "ln(": "e^(",
+      };
+      expression += secondMode && secondMap[value] ? secondMap[value] : value;
+      secondMode = false;
+      updateScreen();
+    };
+
+    const wrapLast = (prefix, suffix = ")") => {
+      if (!expression) {
+        expression = `${prefix}Ans${suffix}`;
+        updateScreen();
+        return;
+      }
+      const match = expression.match(/(Ans|pi|e|\d+\.?\d*|\([^()]+\))$/);
+      if (match) {
+        expression = expression.slice(0, -match[0].length) + prefix + match[0] + suffix;
+      } else {
+        expression += prefix;
+      }
+      updateScreen();
+    };
+
+    const runAction = (action) => {
+      if (action === "second") {
+        secondMode = !secondMode;
+        updateScreen();
+        return;
+      }
+      if (action === "clear-all") {
+        expression = "";
+        answer = 0;
+        secondMode = false;
+        updateScreen();
+        return;
+      }
+      if (action === "backspace") {
+        expression = expression.slice(0, -1);
+        updateScreen();
+        return;
+      }
+      if (action === "equals") {
+        try {
+          answer = evaluate(expression);
+          updateScreen(formatNumber(answer));
+          expression = "";
+        } catch {
+          updateScreen("Syntax ERROR");
+        }
+        return;
+      }
+      if (action === "square") wrapLast("(", ")^2");
+      if (action === "power") append("^");
+      if (action === "factorial") append("!");
+      if (action === "percent") wrapLast("(", ")/100");
+      if (action === "reciprocal") wrapLast("1/(", ")");
+      if (action === "toggle-sign") wrapLast("-(", ")");
+      if (action === "ans") append("Ans");
+      if (action === "memory-plus") {
+        try {
+          memory += expression ? evaluate(expression) : answer;
+          expression = "";
+          updateScreen(formatNumber(memory));
+        } catch {
+          updateScreen("Syntax ERROR");
+        }
+      }
+      if (action === "memory-recall") append(formatNumber(memory));
+      if (action === "memory-clear") {
+        memory = 0;
+        updateScreen();
+      }
+    };
+
+    keys.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const { value, action } = button.dataset;
+      if (action) {
+        runAction(action);
+        return;
+      }
+      if (value && /^[a-z]+\(+$/.test(value)) appendFunction(value);
+      else if (value) append(value);
+    });
+
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        angleMode = button.dataset.angle;
+        modeButtons.forEach((item) => item.classList.toggle("active", item === button));
+        updateScreen();
+      });
+    });
+
+    shareButton.addEventListener("click", shareCalculator);
+
+    window.addEventListener("keydown", (event) => {
+      const keyMap = {
+        Enter: "equals",
+        Backspace: "backspace",
+        Escape: "clear-all",
+      };
+      if (/^[0-9+\-*/().]$/.test(event.key)) append(event.key);
+      if (event.key === "^") append("^");
+      if (keyMap[event.key]) runAction(keyMap[event.key]);
+    });
+
+    updateScreen();
+  </script>
+</body>
+</html>
