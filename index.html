@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Scientific Calculator</title>
+  <title>꾸정왈계산기</title>
   <meta name="description" content="친구들과 함께 쓰는 공학용 계산기">
   <meta name="theme-color" content="#20242a">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="공학용 계산기">
+  <meta property="og:title" content="꾸정왈계산기">
   <meta property="og:description" content="카카오톡에서 눌러 바로 쓰는 공학용 계산기">
-  <meta property="og:site_name" content="Scientific Calculator">
+  <meta property="og:site_name" content="꾸정왈계산기">
   <style>
     :root {
       color-scheme: dark;
@@ -318,8 +318,8 @@
   <main class="calculator" aria-label="Scientific calculator">
     <div class="brand-row">
       <div>
-        <div class="brand">SCIENTIFIC</div>
-        <div class="model">CALCULATOR</div>
+        <div class="brand">꾸정왈계산기</div>
+        <div class="model">SCIENTIFIC CALCULATOR</div>
       </div>
       <div class="brand-actions">
         <button class="share-btn" id="shareKakao" type="button" title="카카오톡으로 공유">공유</button>
@@ -519,9 +519,9 @@
       const resultText = expression
         ? `현재 입력식: ${expression}`
         : `최근 계산값: ${formatNumber(answer)}`;
-      const text = `공학용 계산기\n${resultText}`;
+      const text = `꾸정왈계산기\n${resultText}`;
       const shareData = {
-        title: "공학용 계산기",
+        title: "꾸정왈계산기",
         text,
         url: pageUrl || undefined,
       };
