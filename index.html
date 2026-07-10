@@ -114,6 +114,24 @@
       font-size: 0.72rem;
     }
 
+    .voice-btn {
+      width: 56px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #b6f2d1, #48b77d);
+      color: #102418;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        inset 0 -3px 0 rgba(20, 91, 52, 0.28),
+        0 3px 0 var(--body-edge);
+      font-size: 0.72rem;
+    }
+
+    .voice-btn.listening {
+      background: linear-gradient(180deg, #ffd48a, #ef7d42);
+      color: #251104;
+    }
+
     .share-toast {
       position: fixed;
       left: 50%;
@@ -322,6 +340,7 @@
         <div class="model">SCIENTIFIC CALCULATOR</div>
       </div>
       <div class="brand-actions">
+        <button class="voice-btn" id="voiceInput" type="button" title="목소리로 계산">음성</button>
         <button class="share-btn" id="shareKakao" type="button" title="카카오톡으로 공유">공유</button>
         <div class="solar" aria-hidden="true">
           <span></span><span></span><span></span><span></span>
@@ -404,6 +423,7 @@
     const resultEl = document.querySelector("#result");
     const angleStatusEl = document.querySelector("#angleStatus");
     const memoryStatusEl = document.querySelector("#memoryStatus");
+    const voiceButton = document.querySelector("#voiceInput");
     const shareButton = document.querySelector("#shareKakao");
     const shareToast = document.querySelector("#shareToast");
     const keys = document.querySelector(".keypad");
@@ -415,6 +435,10 @@
     let angleMode = "DEG";
     let secondMode = false;
     let toastTimer = 0;
+    let recognition = null;
+    let isListening = false;
+    let voiceConversation = false;
+    let shouldRestartVoice = false;
 
     const formatNumber = (value) => {
       if (!Number.isFinite(value)) return "Math ERROR";
@@ -545,6 +569,243 @@
       }
     };
 
+    const speak = (message, onDone = null) => {
+      if (!("speechSynthesis" in window)) {
+        if (onDone) window.setTimeout(onDone, 300);
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.lang = "ko-KR";
+      utterance.rate = 0.95;
+      utterance.onend = () => {
+        if (onDone) onDone();
+      };
+      window.speechSynthesis.speak(utterance);
+    };
+
+    const answerByVoice = (message) => {
+      showToast(message);
+      speak(message, () => {
+        if (voiceConversation) {
+          window.setTimeout(() => startVoiceInput(true), 500);
+        }
+      });
+    };
+
+    const koreanNumberToValue = (input) => {
+      const compact = input.replace(/\s+/g, "");
+      if (/^-?\d+(\.\d+)?$/.test(compact)) return Number(compact);
+      const digitMap = {
+        "영": 0, "공": 0, "일": 1, "하나": 1, "한": 1,
+        "이": 2, "둘": 2, "두": 2, "삼": 3, "셋": 3, "세": 3,
+        "사": 4, "넷": 4, "네": 4, "오": 5, "다섯": 5,
+        "육": 6, "륙": 6, "여섯": 6, "칠": 7, "일곱": 7,
+        "팔": 8, "여덟": 8, "구": 9, "아홉": 9,
+      };
+      const unitMap = { "십": 10, "백": 100, "천": 1000 };
+      let total = 0;
+      let current = 0;
+      let index = 0;
+
+      while (index < compact.length) {
+        let matched = false;
+        for (const word of Object.keys(digitMap).sort((a, b) => b.length - a.length)) {
+          if (compact.startsWith(word, index)) {
+            current = digitMap[word];
+            index += word.length;
+            matched = true;
+            break;
+          }
+        }
+        if (matched) continue;
+
+        const char = compact[index];
+        if (unitMap[char]) {
+          total += (current || 1) * unitMap[char];
+          current = 0;
+          index += 1;
+          continue;
+        }
+        if (char === "만") {
+          total = (total + current || 1) * 10000;
+          current = 0;
+          index += 1;
+          continue;
+        }
+        return null;
+      }
+      return total + current;
+    };
+
+    const numberWordsToDigits = (text) => {
+      const numberPattern = /([공영일이삼사오육륙칠팔구십백천만하나둘셋넷다섯여섯일곱여덟아홉한두세네]+|\d+(?:\.\d+)?)/g;
+      return text.replace(numberPattern, (match) => {
+        const value = koreanNumberToValue(match);
+        return value === null ? match : String(value);
+      });
+    };
+
+    const voiceToExpression = (spokenText) => {
+      let text = spokenText
+        .toLowerCase()
+        .replace(/[,.?]/g, " ")
+        .replace(/계산해줘|계산해|계산|얼마야|몇이야|답이 뭐야|답은 뭐야|결과는 뭐야|알려줘|해줘/g, " ")
+        .replace(/파이/g, " pi ")
+        .replace(/원주율/g, " pi ")
+        .replace(/앤서|정답/g, " Ans ")
+        .replace(/더하기|더해|플러스/g, " + ")
+        .replace(/빼기|빼|마이너스/g, " - ")
+        .replace(/곱하기|곱해|곱/g, " * ")
+        .replace(/나누기|나눠|나누어|나눈/g, " / ")
+        .replace(/제곱근|루트/g, " sqrt ")
+        .replace(/코싸인|코사인|코싸인/g, " cos ")
+        .replace(/싸인|사인|쌓인/g, " sin ")
+        .replace(/탄젠트|탄잰트|탄/g, " tan ")
+        .replace(/자연로그/g, " ln ")
+        .replace(/로그/g, " log ")
+        .replace(/제곱/g, " ^ 2 ")
+        .replace(/점/g, " . ")
+        .replace(/퍼센트|프로/g, " / 100 ")
+        .replace(/도/g, " ")
+        .replace(/[은는이가요]/g, " ");
+
+      text = numberWordsToDigits(text);
+      text = text.replace(/\b(sin|cos|tan|log|ln|sqrt)\s*([0-9.]+|pi|Ans)\b/g, "$1 $2");
+      const tokens = text.trim().split(/\s+/).filter(Boolean);
+      const result = [];
+
+      for (let index = 0; index < tokens.length; index += 1) {
+        const token = tokens[index];
+        if (["sin", "cos", "tan", "log", "ln", "sqrt"].includes(token)) {
+          const next = tokens[index + 1];
+          if (next && !["+", "-", "*", "/", "^"].includes(next)) {
+            result.push(`${token}(${next})`);
+            index += 1;
+          } else {
+            result.push(`${token}(`);
+          }
+        } else if (/^[0-9.+\-*/^()]+$/.test(token) || token === "pi" || token === "Ans") {
+          result.push(token);
+        }
+      }
+
+      return result.join("");
+    };
+
+    const handleVoiceCommand = (spokenText) => {
+      const command = spokenText.trim();
+      if (!command) return;
+      showToast(`들은 말: ${command}`);
+
+      if (/그만|종료|멈춰|끝내|꺼줘|대화\s*끝/.test(command)) {
+        voiceConversation = false;
+        shouldRestartVoice = false;
+        recognition?.stop();
+        answerByVoice("음성 대화를 종료했습니다.");
+        return;
+      }
+
+      if (/안녕|하이|여보세요/.test(command)) {
+        answerByVoice("안녕하세요. 꾸정왈계산기입니다. 계산식을 말해 주세요.");
+        return;
+      }
+      if (/사용법|도움말|뭘 할 수|뭐 할 수|어떻게/.test(command)) {
+        answerByVoice("예를 들어 일 더하기 이, 삼 곱하기 사, 루트 구, 사인 삼십처럼 말하면 계산합니다.");
+        return;
+      }
+      if (/고마워|감사/.test(command)) {
+        answerByVoice("천만에요. 계속 듣고 있습니다. 계산할 것을 말해 주세요.");
+        return;
+      }
+      if (/이름|누구/.test(command)) {
+        answerByVoice("저는 꾸정왈계산기입니다. 목소리로 계산을 도와드립니다.");
+        return;
+      }
+      if (/다시|못 알아|안 들려|안돼|안 되/.test(command)) {
+        answerByVoice("천천히 또박또박 말해 주세요. 예를 들면 일 더하기 이 계산해줘라고 말하면 됩니다.");
+        return;
+      }
+
+      if (/초기화|전체\s*삭제|클리어|지워/.test(command)) {
+        runAction("clear-all");
+        answerByVoice("초기화했습니다.");
+        return;
+      }
+      if (/삭제|지우기|뒤로/.test(command)) {
+        runAction("backspace");
+        answerByVoice("하나 지웠습니다.");
+        return;
+      }
+
+      const parsedExpression = voiceToExpression(command);
+      if (!parsedExpression) {
+        answerByVoice("계산식으로 알아듣지 못했습니다. 예를 들어 일 더하기 이라고 말해 주세요.");
+        return;
+      }
+
+      expression = parsedExpression;
+      try {
+        answer = evaluate(expression);
+        updateScreen(formatNumber(answer));
+        expression = "";
+        answerByVoice(`결과는 ${formatNumber(answer)} 입니다. 다음 계산을 말해 주세요.`);
+      } catch {
+        updateScreen("Syntax ERROR");
+        answerByVoice("계산할 수 없는 식입니다. 조금 더 간단히 말해 주세요.");
+      }
+    };
+
+    const startVoiceInput = (keepConversation = false) => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        voiceConversation = false;
+        answerByVoice("이 브라우저는 음성 인식을 지원하지 않습니다. 크롬이나 엣지에서 열어 주세요.");
+        return;
+      }
+      if (isListening) {
+        voiceConversation = false;
+        shouldRestartVoice = false;
+        recognition?.stop();
+        answerByVoice("음성 대화를 종료했습니다.");
+        return;
+      }
+
+      voiceConversation = true;
+      shouldRestartVoice = keepConversation;
+      recognition = new SpeechRecognition();
+      recognition.lang = "ko-KR";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      isListening = true;
+      voiceButton.classList.add("listening");
+      voiceButton.textContent = "듣는중";
+      showToast(keepConversation ? "계속 듣는 중입니다." : "말하세요. 예: 일 더하기 이, 루트 구, 사인 삼십");
+
+      recognition.onresult = (event) => {
+        shouldRestartVoice = false;
+        const transcript = event.results[0][0].transcript;
+        handleVoiceCommand(transcript);
+      };
+      recognition.onerror = (event) => {
+        shouldRestartVoice = false;
+        const message = event.error === "not-allowed"
+          ? "마이크 권한이 필요합니다. 브라우저에서 마이크 허용을 눌러 주세요."
+          : "음성을 알아듣지 못했습니다. 음성 버튼을 다시 누르고 천천히 말해 주세요.";
+        if (event.error === "not-allowed") voiceConversation = false;
+        answerByVoice(message);
+      };
+      recognition.onend = () => {
+        isListening = false;
+        voiceButton.classList.remove("listening");
+        voiceButton.textContent = voiceConversation ? "대화중" : "음성";
+        if (voiceConversation && shouldRestartVoice) {
+          window.setTimeout(() => startVoiceInput(true), 500);
+        }
+      };
+      recognition.start();
+    };
+
     const append = (value) => {
       if (!expression && /^[+\-*/^]$/.test(value)) {
         expression = "Ans";
@@ -652,6 +913,7 @@
       });
     });
 
+    voiceButton.addEventListener("click", startVoiceInput);
     shareButton.addEventListener("click", shareCalculator);
 
     window.addEventListener("keydown", (event) => {
