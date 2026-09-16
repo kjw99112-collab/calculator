@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kjw99112-collab.github.io/%EA%B3%84%EC%82%B0%EA%B8%B0/sitemap.xml
+Sitemap: https://kjw99112-collab.github.io/calculator/sitemap.xml
